@@ -10,7 +10,35 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: admin123
     volumes:
       - mongo-data:/data/db
-  
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper-lab
+    restart: unless-stopped
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-lab
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNO://0.0.0.0:9092,EXTERNO://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNO://kafka:9092,EXTERNO://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNO:PLAINTEXT,EXTERNO:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNO
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+
   api:
     build: .
     container_name: api-lab
@@ -19,9 +47,11 @@ services:
       - "3000:3000"
     environment:
       MONGO_URI: mongodb://admin:admin123@mongo:27017
+      KAFKA_BROKER: kafka:9092
       PORT: 3000
     depends_on:
       - mongo
+      - kafka
 
 volumes:
   mongo-data:

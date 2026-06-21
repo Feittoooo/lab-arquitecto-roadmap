@@ -1,11 +1,13 @@
 const { ObjectId } = require('mongodb');
-const { getDb } = require('../db');
- 
+const { getDb } = require('../services/db');
+const { publicarEvento } = require('../services/kafka');
+
 async function crearNota(req, res) {
   try {
     const nota = req.body;
     const resultado = await getDb().collection('notas').insertOne(nota);
     res.status(201).json({ id: resultado.insertedId, ...nota });
+    publicarEvento("notas-creadas", nota);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'No se pudo guardar la nota' });
